@@ -1,0 +1,133 @@
+### A Pluto.jl notebook ###
+# v0.20.22
+
+using Markdown
+using InteractiveUtils
+
+# ╔═╡ f17103ea-06bf-11f1-a2b0-79e68ed152eb
+md"""# Project_02 - Multibody kinematic modeling
+
+![Dual slider kinematics project](https://raw.githubusercontent.com/cooperrc/me5180-project_02/refs/heads/main/dual-slider.svg)
+
+In this project, a rigid bar is connected to two sliding pistons along
+the diagonal tracks. As the pistons move along the tracks, the rigid bar rotates at a constant rate, $\dot{\theta}_3 = 2~rad/s$. The figure above has three _relative_ ccoordinate systems that move with the bodies:
+
+1. $x_1-y_1-$ describes piston 1 position and orientation, $\theta_1$
+2. $x_2-y_2-$ describes piston 2 position and orientation, $\theta_2$
+3. $x_3-y_3-$ describes the rigid bar position and orientation, $\theta_3$
+
+Each of the pistons are on tracks at $\pm 45^o$ and the rotating rigid
+bar is 10 cm. The hinges are mounted to the center of the pistons
+connecting the ends of the rigid bar. 
+ 
+In this project, you need to 
+
+1. determine constraint equations $C(\mathbf{q},~t)$
+2. solve for the velocities, $\dot{q}$ and accelerations, $\ddot{q}$
+3. visualize the motion of the system as the rigid bar goes through at least one full rotation
+"""
+
+# ╔═╡ 3beffc03-c327-4de2-ad9b-221ec2085622
+md"""
+# Kinematic Analysis of a Driven Mechanism
+
+---
+
+## 1. System Definition
+### Generalized Coordinate Vector
+The system state is represented by the vector:
+$$\mathbf{q} = [x_1, y_1, \theta_1, x_2, y_2, \theta_2, x_3, y_3, \theta_3]^T$$
+
+---
+
+## 2. Track Geometry and Bar Configuration
+### Track Orientations
+The two tracks are oriented at $\pm 45^\circ$ and pass through the origin:
+* **Track 1 ($-45^\circ$):** $\hat{e}_1 = (\cos(-45^\circ), \sin(-45^\circ)) = (1/\sqrt{2}, -1/\sqrt{2})$
+* **Track 2 ($+45^\circ$):** $\hat{e}_2 = (\cos(45^\circ), \sin(45^\circ)) = (1/\sqrt{2}, 1/\sqrt{2})$
+
+### Rigid Bar Geometry (Body 3)
+The bar has length $L = 0.10$ m, with its center at $(x_3, y_3)$ and orientation $\theta_3$. The endpoint positions are defined as:
+
+**Top End (Connects to Piston 2)**
+$$\mathbf{r}_A = \begin{pmatrix} x_3 \\ y_3 \end{pmatrix} + \frac{L}{2} \begin{pmatrix} -\sin \theta_3 \\ \cos \theta_3 \end{pmatrix}$$
+
+**Bottom End (Connects to Piston 1)**
+$$\mathbf{r}_B = \begin{pmatrix} x_3 \\ y_3 \end{pmatrix} - \frac{L}{2} \begin{pmatrix} -\sin \theta_3 \\ \cos \theta_3 \end{pmatrix}$$
+
+---
+
+## 3. Kinematic Constraints
+### Piston 1: Track Constraints
+**Centroid Position**
+$$C_1 : y_1 + x_1 = 0$$
+
+**Angular Orientation**
+$$C_2 : \theta_1 + \frac{\pi}{4} = 0 \quad \Rightarrow \quad \theta_1 = -45^\circ$$
+
+### Piston 2: Track Constraints
+**Centroid Position**
+$$C_3 : y_2 - x_2 = 0$$
+
+**Angular Orientation**
+$$C_4 : \theta_2 - \frac{\pi}{4} = 0 \quad \Rightarrow \quad \theta_2 = +45^\circ$$
+
+### Hinge Constraints (Bar to Piston Connections)
+**Lower Hinge (Piston 1 Connection)**
+$$C_5 : x_3 + \frac{L}{2} \sin \theta_3 - x_1 = 0$$
+$$C_6 : y_3 - \frac{L}{2} \cos \theta_3 - y_1 = 0$$
+
+**Upper Hinge (Piston 2 Connection)**
+$$C_7 : x_3 - \frac{L}{2} \sin \theta_3 - x_2 = 0$$
+$$C_8 : y_3 + \frac{L}{2} \cos \theta_3 - y_2 = 0$$
+
+### Driving Constraint
+**Prescribed Motion**
+The angular velocity $\dot{\theta}_3 = 2$ rad/s is integrated to provide the time-dependent constraint:
+$$C_9 : \theta_3 - \theta_{3,0} - 2t = 0$$
+
+---
+
+## 4. Summary: Full Constraint Vector
+The complete constraint vector $C(\mathbf{q}, t)$ is expressed as:
+
+$$C(\mathbf{q}, t) = \begin{bmatrix} 
+x_1 + y_1 \\
+\theta_1 + \pi/4 \\
+y_2 - x_2 \\
+\theta_2 - \pi/4 \\
+x_3 + \frac{L}{2} \sin \theta_3 - x_1 \\
+y_3 - \frac{L}{2} \cos \theta_3 - y_1 \\
+x_3 - \frac{L}{2} \sin \theta_3 - x_2 \\
+y_3 + \frac{L}{2} \cos \theta_3 - y_2 \\
+\theta_3 - \theta_{3,0} - 2t
+\end{bmatrix} = \mathbf{0}$$
+
+> **Conclusion:** With 9 constraints acting on 9 Degrees of Freedom (DOF), the system is **fully determined (0 DOF)**, as required for a driven mechanical system.
+"""
+
+# ╔═╡ 63f255d1-530d-45f7-b5af-55b2bb61fa7d
+md"$\textsf{\small Constraint Equations: Sami Kahn \& Will Hennessey}$"
+
+# ╔═╡ 00000000-0000-0000-0000-000000000001
+PLUTO_PROJECT_TOML_CONTENTS = """
+[deps]
+"""
+
+# ╔═╡ 00000000-0000-0000-0000-000000000002
+PLUTO_MANIFEST_TOML_CONTENTS = """
+# This file is machine-generated - editing it directly is not advised
+
+julia_version = "1.12.5"
+manifest_format = "2.0"
+project_hash = "71853c6197a6a7f222db0f1978c7cb232b87c5ee"
+
+[deps]
+"""
+
+# ╔═╡ Cell order:
+# ╟─f17103ea-06bf-11f1-a2b0-79e68ed152eb
+# ╟─3beffc03-c327-4de2-ad9b-221ec2085622
+# ╟─63f255d1-530d-45f7-b5af-55b2bb61fa7d
+# ╟─00000000-0000-0000-0000-000000000001
+# ╟─00000000-0000-0000-0000-000000000002
