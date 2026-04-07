@@ -1,0 +1,311 @@
+### A Pluto.jl notebook ###
+# v0.20.21
+
+using Markdown
+using InteractiveUtils
+
+# ╔═╡ f17103ea-06bf-11f1-a2b0-79e68ed152eb
+md"""# Project_02 - Multibody kinematic modeling
+
+![Dual slider kinematics project](https://raw.githubusercontent.com/cooperrc/me5180-project_02/refs/heads/main/dual-slider.svg)
+
+In this project, a rigid bar is connected to two sliding pistons along
+the diagonal tracks. As the pistons move along the tracks, the rigid bar rotates at a constant rate, $\dot{\theta}_3 = 2~rad/s$. The figure above has three _relative_ ccoordinate systems that move with the bodies:
+
+1. $x_1-y_1-$ describes piston 1 position and orientation, $\theta_1$
+2. $x_2-y_2-$ describes piston 2 position and orientation, $\theta_2$
+3. $x_3-y_3-$ describes the rigid bar position and orientation, $\theta_3$
+
+Each of the pistons are on tracks at $\pm 45^o$ and the rotating rigid
+bar is 10 cm. The hinges are mounted to the center of the pistons
+connecting the ends of the rigid bar. 
+ 
+In this project, you need to 
+
+1. determine constraint equations $C(\mathbf{q},~t)$
+2. solve for the velocities, $\dot{q}$ and accelerations, $\ddot{q}$
+3. visualize the motion of the system as the rigid bar goes through at least one full rotation
+"""
+
+# ╔═╡ 3beffc03-c327-4de2-ad9b-221ec2085622
+md"""
+# Kinematic Analysis of a Driven Mechanism
+
+---
+
+## 1. System Definition
+### Generalized Coordinate Vector
+The system state is represented by the vector:
+$$\mathbf{q} = [x_1, y_1, \theta_1, x_2, y_2, \theta_2, x_3, y_3, \theta_3]^T$$
+
+---
+
+## 2. Track Geometry and Bar Configuration
+### Track Orientations
+The two tracks are oriented at $\pm 45^\circ$ and pass through the origin:
+* **Track 1 ($-45^\circ$):** $\hat{e}_1 = (\cos(-45^\circ), \sin(-45^\circ)) = (1/\sqrt{2}, -1/\sqrt{2})$
+* **Track 2 ($+45^\circ$):** $\hat{e}_2 = (\cos(45^\circ), \sin(45^\circ)) = (1/\sqrt{2}, 1/\sqrt{2})$
+
+### Rigid Bar Geometry (Body 3)
+The bar has length $L = 0.10$ m, with its center at $(x_3, y_3)$ and orientation $\theta_3$. The endpoint positions are defined as:
+
+**Top End (Connects to Piston 2)**
+$$\mathbf{r}_A = \begin{pmatrix} x_3 \\ y_3 \end{pmatrix} + \frac{L}{2} \begin{pmatrix} -\sin \theta_3 \\ \cos \theta_3 \end{pmatrix}$$
+
+**Bottom End (Connects to Piston 1)**
+$$\mathbf{r}_B = \begin{pmatrix} x_3 \\ y_3 \end{pmatrix} - \frac{L}{2} \begin{pmatrix} -\sin \theta_3 \\ \cos \theta_3 \end{pmatrix}$$
+
+---
+
+## 3. Kinematic Constraints
+### Piston 1: Track Constraints
+**Centroid Position**
+$$C_1 : y_1 + x_1 = 0$$
+
+**Angular Orientation**
+$$C_2 : \theta_1 + \frac{\pi}{4} = 0 \quad \Rightarrow \quad \theta_1 = -45^\circ$$
+
+### Piston 2: Track Constraints
+**Centroid Position**
+$$C_3 : y_2 - x_2 = 0$$
+
+**Angular Orientation**
+$$C_4 : \theta_2 - \frac{\pi}{4} = 0 \quad \Rightarrow \quad \theta_2 = +45^\circ$$
+
+### Hinge Constraints (Bar to Piston Connections)
+**Lower Hinge (Piston 1 Connection)**
+$$C_5 : x_3 + \frac{L}{2} \sin \theta_3 - x_1 = 0$$
+$$C_6 : y_3 - \frac{L}{2} \cos \theta_3 - y_1 = 0$$
+
+**Upper Hinge (Piston 2 Connection)**
+$$C_7 : x_3 - \frac{L}{2} \sin \theta_3 - x_2 = 0$$
+$$C_8 : y_3 + \frac{L}{2} \cos \theta_3 - y_2 = 0$$
+
+### Driving Constraint
+**Prescribed Motion**
+The angular velocity $\dot{\theta}_3 = 2$ rad/s is integrated to provide the time-dependent constraint:
+$$C_9 : \theta_3 - \theta_{3,0} - 2t = 0$$
+
+---
+
+## 4. Summary: Full Constraint Vector
+The complete constraint vector $C(\mathbf{q}, t)$ is expressed as:
+
+$$C(\mathbf{q}, t) = \begin{bmatrix} 
+x_1 + y_1 \\
+\theta_1 + \pi/4 \\
+y_2 - x_2 \\
+\theta_2 - \pi/4 \\
+x_3 + \frac{L}{2} \sin \theta_3 - x_1 \\
+y_3 - \frac{L}{2} \cos \theta_3 - y_1 \\
+x_3 - \frac{L}{2} \sin \theta_3 - x_2 \\
+y_3 + \frac{L}{2} \cos \theta_3 - y_2 \\
+\theta_3 - \theta_{3,0} - 2t
+\end{bmatrix} = \mathbf{0}$$
+
+> **Conclusion:** With 9 constraints acting on 9 Degrees of Freedom (DOF), the system is **fully determined (0 DOF)**, as required for a driven mechanical system.
+"""
+
+# ╔═╡ 63f255d1-530d-45f7-b5af-55b2bb61fa7d
+md"$\textsf{\small Constraint Equations: Sami Kahn \& Will Hennessey}$"
+
+# ╔═╡ 8b6bd5c9-a931-4d98-9321-d103a9e6e17a
+begin
+	L = 0.10
+	ω = 2.0
+	θ30 = 0.0
+end
+
+# ╔═╡ 7612aa62-3288-401d-9c54-ece545d76853
+md"""
+# Part 2: Velocity and Acceleration Equations
+
+Starting from the constraint vector from Part 1,
+
+C(q,t) = 0
+
+with generalized coordinates
+
+q = [x1, y1, θ1, x2, y2, θ2, x3, y3, θ3]
+
+we differentiate the constraints once to obtain the velocity equations and twice to obtain the acceleration equations.
+
+The Part 1 constraints are:
+
+1. x1 + y1 = 0  
+2. θ1 + π/4 = 0  
+3. y2 - x2 = 0  
+4. θ2 - π/4 = 0  
+5. x3 + (L/2)sin(θ3) - x1 = 0  
+6. y3 - (L/2)cos(θ3) - y1 = 0  
+7. x3 - (L/2)sin(θ3) - x2 = 0  
+8. y3 + (L/2)cos(θ3) - y2 = 0  
+9. θ3 - θ30 - ωt = 0
+
+where:
+
+- L = 0.10 m
+- ω = 2 rad/s
+"""
+
+# ╔═╡ e38098d2-c767-4256-891e-bed88f7fb4fe
+md"""
+## Velocity Equations
+
+Differentiating each constraint with respect to time gives:
+
+1. x1_dot + y1_dot = 0  
+2. θ1_dot = 0  
+3. y2_dot - x2_dot = 0  
+4. θ2_dot = 0  
+5. x3_dot + (L/2)cos(θ3)θ3_dot - x1_dot = 0  
+6. y3_dot + (L/2)sin(θ3)θ3_dot - y1_dot = 0  
+7. x3_dot - (L/2)cos(θ3)θ3_dot - x2_dot = 0  
+8. y3_dot - (L/2)sin(θ3)θ3_dot - y2_dot = 0  
+9. θ3_dot - ω = 0
+
+Since the bar rotates at a constant angular speed,
+
+θ3_dot = ω = 2 rad/s
+
+the velocity equations become:
+
+1. x1_dot + y1_dot = 0  
+2. θ1_dot = 0  
+3. y2_dot - x2_dot = 0  
+4. θ2_dot = 0  
+5. x3_dot + (L/2)ω cos(θ3) - x1_dot = 0  
+6. y3_dot + (L/2)ω sin(θ3) - y1_dot = 0  
+7. x3_dot - (L/2)ω cos(θ3) - x2_dot = 0  
+8. y3_dot - (L/2)ω sin(θ3) - y2_dot = 0  
+9. θ3_dot = ω
+"""
+
+# ╔═╡ fbb82311-041a-476d-8d12-166f2ff13981
+md"""
+## Final Velocity Solution
+
+Solving the system gives:
+
+x1_dot = (Lω/2)(cos(θ3) - sin(θ3))
+
+y1_dot = (Lω/2)(sin(θ3) - cos(θ3))
+
+θ1_dot = 0
+
+x2_dot = -(Lω/2)(cos(θ3) + sin(θ3))
+
+y2_dot = -(Lω/2)(cos(θ3) + sin(θ3))
+
+θ2_dot = 0
+
+x3_dot = -(Lω/2)sin(θ3)
+
+y3_dot = -(Lω/2)cos(θ3)
+
+θ3_dot = ω
+"""
+
+# ╔═╡ 12f968ae-7bd8-4b7a-a798-bcb31ec34ac1
+md"""
+## Acceleration Equations
+
+Differentiating the velocity equations again gives:
+
+1. x1_ddot + y1_ddot = 0  
+2. θ1_ddot = 0  
+3. y2_ddot - x2_ddot = 0  
+4. θ2_ddot = 0  
+5. x3_ddot - (L/2)sin(θ3)(θ3_dot)^2 + (L/2)cos(θ3)θ3_ddot - x1_ddot = 0  
+6. y3_ddot + (L/2)cos(θ3)(θ3_dot)^2 + (L/2)sin(θ3)θ3_ddot - y1_ddot = 0  
+7. x3_ddot + (L/2)sin(θ3)(θ3_dot)^2 - (L/2)cos(θ3)θ3_ddot - x2_ddot = 0  
+8. y3_ddot - (L/2)cos(θ3)(θ3_dot)^2 - (L/2)sin(θ3)θ3_ddot - y2_ddot = 0  
+9. θ3_ddot = 0
+
+Because the bar rotates at constant angular speed,
+
+θ3_dot = ω  
+θ3_ddot = 0
+
+so the equations reduce to:
+
+1. x1_ddot + y1_ddot = 0  
+2. θ1_ddot = 0  
+3. y2_ddot - x2_ddot = 0  
+4. θ2_ddot = 0  
+5. x3_ddot - (L/2)ω^2 sin(θ3) - x1_ddot = 0  
+6. y3_ddot + (L/2)ω^2 cos(θ3) - y1_ddot = 0  
+7. x3_ddot + (L/2)ω^2 sin(θ3) - x2_ddot = 0  
+8. y3_ddot - (L/2)ω^2 cos(θ3) - y2_ddot = 0  
+9. θ3_ddot = 0
+"""
+
+# ╔═╡ 4572be39-3647-431e-8b63-66931a258d6e
+md"""
+## Final Acceleration Solution
+
+Solving the system gives:
+
+x1_ddot = -(Lω^2/2)(sin(θ3) + cos(θ3))
+
+y1_ddot = (Lω^2/2)(sin(θ3) + cos(θ3))
+
+θ1_ddot = 0
+
+x2_ddot = (Lω^2/2)(sin(θ3) - cos(θ3))
+
+y2_ddot = (Lω^2/2)(sin(θ3) - cos(θ3))
+
+θ2_ddot = 0
+
+x3_ddot = -(Lω^2/2)cos(θ3)
+
+y3_ddot = (Lω^2/2)sin(θ3)
+
+θ3_ddot = 0
+"""
+
+# ╔═╡ 3806d11c-8042-414e-8c98-7e62ea3ad9da
+md"""
+## Final Vector Form
+
+The final velocity vector is:
+
+q_dot = [
+    (Lω/2)(cos(θ3) - sin(θ3)),
+    (Lω/2)(sin(θ3) - cos(θ3)),
+    0,
+    -(Lω/2)(cos(θ3) + sin(θ3)),
+    -(Lω/2)(cos(θ3) + sin(θ3)),
+    0,
+    -(Lω/2)sin(θ3),
+    -(Lω/2)cos(θ3),
+    ω
+]
+
+The final acceleration vector is:
+
+q_ddot = [
+    -(Lω^2/2)(sin(θ3) + cos(θ3)),
+    (Lω^2/2)(sin(θ3) + cos(θ3)),
+    0,
+    (Lω^2/2)(sin(θ3) - cos(θ3)),
+    (Lω^2/2)(sin(θ3) - cos(θ3)),
+    0,
+    -(Lω^2/2)cos(θ3),
+    (Lω^2/2)sin(θ3),
+    0
+]
+"""
+
+# ╔═╡ Cell order:
+# ╟─f17103ea-06bf-11f1-a2b0-79e68ed152eb
+# ╟─3beffc03-c327-4de2-ad9b-221ec2085622
+# ╟─63f255d1-530d-45f7-b5af-55b2bb61fa7d
+# ╠═8b6bd5c9-a931-4d98-9321-d103a9e6e17a
+# ╠═7612aa62-3288-401d-9c54-ece545d76853
+# ╠═e38098d2-c767-4256-891e-bed88f7fb4fe
+# ╠═fbb82311-041a-476d-8d12-166f2ff13981
+# ╠═12f968ae-7bd8-4b7a-a798-bcb31ec34ac1
+# ╠═4572be39-3647-431e-8b63-66931a258d6e
+# ╠═3806d11c-8042-414e-8c98-7e62ea3ad9da
